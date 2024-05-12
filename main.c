@@ -3,14 +3,12 @@
 #include "task.h"
 
 /* MCAL includes. */
-#include "uart0.h"
+
 
 /* The HW setup function */
 static void prvSetupHardware( void );
 
 /* FreeRTOS tasks */
-void vTask1(void *pvParameters);
-void vTask2(void *pvParameters);
 
 /* Used to hold the handle of Tasks */
 TaskHandle_t xTask2Handle;
@@ -21,8 +19,6 @@ int main()
     prvSetupHardware();
 
     /* Create Tasks here */
-	xTaskCreate(vTask1, "Task 1", 256, NULL, 1,  NULL);
-	xTaskCreate(vTask2, "Task 2", 256, NULL, 2,  &xTask2Handle);
 
 	/* Now all the tasks have been started - start the scheduler.
 
@@ -43,29 +39,7 @@ int main()
 static void prvSetupHardware( void )
 {
 	/* Place here any needed HW initialization such as GPIO, UART, etc.  */
-    UART0_Init();
-}
 
-void vTask1(void *pvParameters)
-{
-    for (;;)
-    {
-        UART0_SendString("Task1 is running\r\n");
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        UART0_SendString("Task1 Creating Task2\r\n");
-        xTaskCreate(vTask2, "Task 2", 256, NULL, 2,  &xTask2Handle);
-
-    }
-}
-
-void vTask2(void *pvParameters)
-{
-    for (;;)
-    {
-        UART0_SendString("Task2 is running\r\n");
-        vTaskDelete(NULL);
-    }
 }
 
 
