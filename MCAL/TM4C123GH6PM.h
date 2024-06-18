@@ -49,6 +49,20 @@ extern "C" {
 #endif
 
 
+#define GPIO_PORTA_PRIORITY_MASK      0xFFFFFFF8
+#define GPIO_PORTA_PRIORITY_BITS_POS  0
+#define GPIO_PORTA_INTERRUPT_PRIORITY 5
+
+#define GPIO_PORTB_PRIORITY_MASK      0xFFFFFFC7
+#define GPIO_PORTB_PRIORITY_BITS_POS  3
+#define GPIO_PORTB_INTERRUPT_PRIORITY 5
+
+
+#define GPIO_PORTF_PRIORITY_MASK      0xFF1FFFFF
+#define GPIO_PORTF_PRIORITY_BITS_POS  21
+#define GPIO_PORTF_INTERRUPT_PRIORITY 5
+
+
 /* -------------------------  Interrupt Number Definition  ------------------------ */
 
 typedef enum {
