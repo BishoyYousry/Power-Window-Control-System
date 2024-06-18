@@ -6,6 +6,22 @@
 #include "Queue.h"
 #include "TM4C123GH6PM.h"
 
+/*Macros*/
+#define GPIO_PORTA_BASE 0
+#define GPIO_PORTB_BASE 1
+#define GPIO_PORTC_BASE 2
+#define GPIO_PORTD_BASE 3
+#define GPIO_PORTE_BASE 4
+#define GPIO_PORTF_BASE 5
+
+/*User Defined DataTypes*/
+typedef struct
+{
+    uint8_t portNumber;
+    uint8_t pinNumber;
+    uint8_t edgeType;
+
+}InterruptInfo_t;
 
 /* The HW setup function */
 static void prvSetupHardware( void );
@@ -19,6 +35,8 @@ void GPIO_Lock_EdgeTriggeredInterruptInit(void);
 void GPIO_LimitU_EdgeTriggeredInterruptInit(void);
 void GPIO_LimitD_EdgeTriggeredInterruptInit(void);
 
+/*Shared Resource*/
+InterruptInfo_t xInterruptInfo;
 
 /* Tasks Handles */
 TaskHandle_t xStateMachineHandle;
@@ -326,7 +344,17 @@ void GPIOPortE_Handler(void)
 
 void GPIOPortF_Handler(void)
 {
+     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 
+     xInterruptInfo.portNumber = GPIO_PORTF_BASE;
+     if(GPIOF->RIS & (1<<0))           /* PF0 handler code */
+     {
+         xInterruptInfo.pinNumber = 0;
+         GPIOF->ICR |= (1<<0);       /* Clear Trigger flag for PF4 (Interrupt Flag) */
+     }
+     else if(GPIOF->RIS & (1<<4))      /* PF4 handler code */
+     {
+         xInterruptInfo.pinNumber = 4;
+         GPIOF->ICR |= (1<<4);       /* Clear Trigger flag for PF4 (Interrupt Flag) */
+     }
 }
-
-
