@@ -136,7 +136,7 @@ typedef struct {
  *param: pin_no: GPIO pin #
  *return: none
 */
-static void gpio_configure_pin_unlock(GPIOA_Type *GPIOx, uint16_t pin_no);
+  void gpio_configure_pin_unlock(GPIOA_Type *GPIOx, uint16_t pin_no);
 
 /*
  *brief: Configures the mode of a pin: input, output, alt or analogue mode
@@ -145,7 +145,7 @@ static void gpio_configure_pin_unlock(GPIOA_Type *GPIOx, uint16_t pin_no);
  *param: mode: mode to be configured, analog or digital
  *return: none
 */
-static void gpio_configure_pin_mode(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t mode);
+  void gpio_configure_pin_mode(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t mode);
 
 /*
  *brief: Configures the output type of a pin
@@ -154,7 +154,7 @@ static void gpio_configure_pin_mode(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t
  *param: op_type: I/O type to be configured
  *return: none
 */
-static void gpio_configure_pin_iotype(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t io_type);
+  void gpio_configure_pin_iotype(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t io_type);
 
 /*
  *brief: Configures the pull up/down register of a pin
@@ -163,7 +163,7 @@ static void gpio_configure_pin_iotype(GPIOA_Type *GPIOx, uint16_t pin_no, uint32
  *param: pupd: pull up/down or open drain to be configured
  *return: none
 */
-static void gpio_configure_pin_pupd(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t pupd);
+  void gpio_configure_pin_pupd(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t pupd);
 
 /*
  *brief: Activate internal pull up or pull down resistors
@@ -172,7 +172,7 @@ static void gpio_configure_pin_pupd(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t
  *param: alt_fun_value: alternate function to be configed with
  *return: none
 */
-static void gpio_set_alt_function(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t alt_fun_enable, uint32_t alt_fun_value);
+  void gpio_set_alt_function(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t alt_fun_enable, uint32_t alt_fun_value);
 
 /*
  *brief: Read value from a pin

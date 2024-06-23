@@ -1,18 +1,11 @@
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "gpio.h"
 #include "Semphr.h"
 #include "Queue.h"
 #include "TM4C123GH6PM.h"
-
-/*Macros*/
-#define GPIO_PORTA_BASE 0
-#define GPIO_PORTB_BASE 1
-#define GPIO_PORTC_BASE 2
-#define GPIO_PORTD_BASE 3
-#define GPIO_PORTE_BASE 4
-#define GPIO_PORTF_BASE 5
+#include "Buttons.h"
+#include "motor.h"
 
 /*User Defined DataTypes*/
 typedef struct
@@ -39,27 +32,29 @@ void GPIO_LimitD_EdgeTriggeredInterruptInit(void);
 InterruptInfo_t xInterruptInfo;
 
 /* Tasks Handles */
-TaskHandle_t xStateMachineHandle;
 TaskHandle_t xDriverUpHandle;
 TaskHandle_t xDriverDownHandle;
-TaskHandle_t xDriverOffHandle;
 TaskHandle_t xPassengerUpHandle;
 TaskHandle_t xPassengerDownHandle;
-TaskHandle_t xPassengerOffHandle;
 
 
 /* Semaphore Handles */
-SemaphoreHandle_t xPortASemaphore;
-SemaphoreHandle_t xPortBSemaphore;
+SemaphoreHandle_t xPassengerUp;
+SemaphoreHandle_t xPassengerDown;
+SemaphoreHandle_t xDriverUp;
+SemaphoreHandle_t xDriverDown;
+
+/* Mutex Handle */
+SemaphoreHandle_t xMotor;
+
+/*Queue Handle*/
+QueueHandle_t xLock_Queue;
 
 /* FreeRTOS tasks */
-void vStateMachine(void *pvParameters);
 void vDriverUp(void *pvParameters);
 void vDriverDown(void *pvParameters);
-void vDriverOff(void *pvParameters);
 void vPassengerUp(void *pvParameters);
 void vPassengerDown(void *pvParameters);
-void vPassengerOff(void *pvParameters);
 
 
 int main(void)
@@ -68,17 +63,17 @@ int main(void)
     prvSetupHardware();
 
     /* Create Semaphores here */
-    xPortASemaphore = xSemaphoreCreateBinary();
-    xPortBSemaphore = xSemaphoreCreateBinary();
+    xPassengerUp = xSemaphoreCreateBinary();
+    xPassengerDown = xSemaphoreCreateBinary();
+    xDriverUp = xSemaphoreCreateBinary();
+    xDriverDown = xSemaphoreCreateBinary();
 
+    /*Create Mutex */
+    xMotor = xSemaphoreCreateBinary();
 
-    xTaskCreate(vStateMachine,
-                "DriverUp",
-                configMINIMAL_STACK_SIZE,
-                (void*)NULL,
-                1,
-                &xDriverUpHandle
-              );
+    /*Create Queue*/
+    xLock_Queue = xQueueCreate(1, sizeof(int));
+
 
     /* Create Tasks here */
     xTaskCreate(vDriverUp,
@@ -97,15 +92,6 @@ int main(void)
                  &xDriverDownHandle
                );
 
-    xTaskCreate(vDriverOff,
-                 "DriverOff",
-                 configMINIMAL_STACK_SIZE,
-                 (void*)NULL,
-                 2,
-                 &xDriverOffHandle
-               );
-
-
     xTaskCreate(vPassengerUp,
                  "PassengerUp",
                  configMINIMAL_STACK_SIZE,
@@ -120,14 +106,6 @@ int main(void)
                  (void*)NULL,
                  1,
                  &xPassengerDownHandle
-               );
-
-    xTaskCreate( vPassengerOff,
-                 "PassengerOff",
-                 configMINIMAL_STACK_SIZE,
-                 (void*)NULL,
-                 2,
-                 &xPassengerOffHandle
                );
 
     /* Now all the tasks have been started - start the scheduler.
@@ -147,7 +125,10 @@ int main(void)
 
 static void prvSetupHardware( void )
 {
-    /* Place here any needed HW initialization such as GPIO, UART, etc.  */
+    /*Enable Pins*/
+    BottonsConfig();
+    MotorConfig();
+    /* Place here any needed HW initialization such as GPIO, UART, etc.
     GPIO_DU_EdgeTriggeredInterruptInit();
     GPIO_DD_EdgeTriggeredInterruptInit();
     GPIO_PU_EdgeTriggeredInterruptInit();
@@ -155,21 +136,43 @@ static void prvSetupHardware( void )
     GPIO_Jamming_EdgeTriggeredInterruptInit();
     GPIO_Lock_EdgeTriggeredInterruptInit();
     GPIO_LimitU_EdgeTriggeredInterruptInit();
-    GPIO_LimitD_EdgeTriggeredInterruptInit();
+    GPIO_LimitD_EdgeTriggeredInterruptInit();*/
 }
 
-
-
-void vStateMachine(void *pvParameters)
-{
-    for(;;){
-
-    }
-}
 
 void vDriverUp(void *pvParameters)
 {
+    xSemaphoreTake(xDriverUp,0);
     for (;;) {
+
+        /*Take semaphore to start running*/
+       if(xSemaphoreTake(xDriverUp,portMAX_DELAY)==pdTRUE)
+       {
+        vTaskDelay(500/ portTICK_PERIOD_MS);
+        /*Manual mode*/
+        if(DriverUpPressed())
+        {
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+            {
+            MotorOn(CLOCKWISE);
+            while(DriverUpPressed());
+            MotorOff();
+            xSemaphoreGive(xMotor);
+            }
+        }
+        else
+        {
+            /*Automatic*/
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+              {
+                MotorOn(CLOCKWISE);
+                while(!UpLimitSwitch());
+                MotorOff();
+                xSemaphoreGive(xMotor);
+              }
+        }
+       }
+
 
     }
 }
@@ -177,44 +180,125 @@ void vDriverUp(void *pvParameters)
 
 void vDriverDown(void *pvParameters)
 {
+    xSemaphoreTake(xDriverDown,0);
     for (;;) {
+
+        /*Take semaphore to start running*/
+       if(xSemaphoreTake(xDriverDown,portMAX_DELAY)==pdTRUE)
+       {
+           vTaskDelay(500/ portTICK_PERIOD_MS);
+        /*Manual mode*/
+        if(DriverDownPressed())
+        {
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+            {
+            MotorOn(ANTICLOCKWISE);
+            while(DriverDownPressed());
+            MotorOff();
+            xSemaphoreGive(xMotor);
+            }
+        }
+        else
+        {
+            /*Automatic*/
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+              {
+                MotorOn(CLOCKWISE);
+                while(!UpLimitSwitch());
+                MotorOff();
+                xSemaphoreGive(xMotor);
+              }
+        }
+       }
+
 
     }
 }
 
-void vDriverOff(void *pvParameters)
-{
-    for (;;) {
-
-    }
-}
 
 
 void vPassengerUp(void *pvParameters)
 {
+    xSemaphoreTake(xPassengerUp,0);
     for (;;) {
+        /*if lock is on Do nothing */
+        while(LockRead()==1);
+
+        /*Take semaphore to start running*/
+       if(xSemaphoreTake(xPassengerUp,portMAX_DELAY)==pdTRUE)
+       {
+           vTaskDelay(500/ portTICK_PERIOD_MS);
+        /*Manual mode*/
+        if(PassengerUpPressed())
+        {
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+            {
+            MotorOn(ANTICLOCKWISE);
+            while(PassengerUpPressed());
+            MotorOff();
+            xSemaphoreGive(xMotor);
+            }
+        }
+        else
+        {
+            /*Automatic*/
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+              {
+                MotorOn(CLOCKWISE);
+                while(!UpLimitSwitch());
+                MotorOff();
+                xSemaphoreGive(xMotor);
+              }
+        }
+       }
+
 
     }
 }
+
 
 void vPassengerDown(void *pvParameters)
 {
+    xSemaphoreTake(xPassengerDown,0);
     for (;;) {
+        /*if lock is on Do nothing */
+        while(LockRead()==1);
+
+        /*Take semaphore to start running*/
+       if(xSemaphoreTake(xPassengerDown,portMAX_DELAY)==pdTRUE)
+       {
+           vTaskDelay(500/ portTICK_PERIOD_MS);
+        /*Manual mode*/
+        if(PassengerDownPressed())
+        {
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+            {
+            MotorOn(ANTICLOCKWISE);
+            while(PassengerDownPressed());
+            MotorOff();
+            xSemaphoreGive(xMotor);
+            }
+        }
+        else
+        {
+            /*Automatic*/
+            if(xSemaphoreTake(xMotor,portMAX_DELAY)==pdTRUE)
+              {
+                MotorOn(CLOCKWISE);
+                while(!UpLimitSwitch());
+                MotorOff();
+                xSemaphoreGive(xMotor);
+              }
+        }
+       }
+
 
     }
 }
-
-void vPassengerOff(void *pvParameters)
-{
-    for (;;) {
-
-    }
-}
-
-
 
 void GPIO_DU_EdgeTriggeredInterruptInit(void)
 {
+
     GPIOA->IS   &= ~(1<<2);      /* PA2  detect edges */
     GPIOA->IBE  &= ~(1<<2);      /* PA2 will detect a certain edge */
     GPIOA->IEV  &= ~(1<<2);      /* PA2 will detect a falling edge */
@@ -309,52 +393,40 @@ void GPIO_LimitD_EdgeTriggeredInterruptInit(void)
     NVIC->ISER[0] |= 0x00000002;   /* Enable NVIC Interrupt for GPIO PORTB by setting bit 1 in EN0 Register */
 }
 
-
-void GPIOPortA_Handler(void)
-{
-    xSemaphoreGive( xPortASemaphore );
-
-    /* Clear Trigger flag for PA0 (Interrupt Flag) */
-    GPIOA->ICR  |= (1<<0);
-}
-
-void GPIOPortB_Handler(void)
-{
-    /* Clear Trigger flag for PB0 (Interrupt Flag) */
-    GPIOB->ICR  |= (1<<0);
-}
-
-void GPIOPortC_Handler(void)
-{
-
-}
-
+void GPIOPortA_Handler(void){}
+void GPIOPortB_Handler(void){}
+void GPIOPortC_Handler(void){}
+void GPIOPortE_Handler(void){}
+void GPIOPortF_Handler(void){}
 
 void GPIOPortD_Handler(void)
 {
+    BaseType_t flag = pdFALSE;
+   if(DriverUpPressed())
+   {
+       GPIOD->ICR |= (1<<DriverBottonupPin);       /* Clear Trigger flag for the pin (Interrupt Flag) */
+       xSemaphoreGiveFromISR(xDriverUp,&flag);
+   }
 
+   if(DriverDownPressed())
+      {
+          GPIOD->ICR |= (1<<DriverBottonDownPin);       /* Clear Trigger flag for the pin (Interrupt Flag) */
+          xSemaphoreGiveFromISR(xDriverDown,&flag);
+      }
+   if(PassengerUpPressed())
+      {
+          GPIOD->ICR |= (1<<PassengerBottonupPin);       /* Clear Trigger flag for the pin (Interrupt Flag) */
+          xSemaphoreGiveFromISR(xPassengerUp,&flag);
+      }
 
-}
-
-void GPIOPortE_Handler(void)
-{
-
-
-}
-
-void GPIOPortF_Handler(void)
-{
-     BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
-
-     xInterruptInfo.portNumber = GPIO_PORTF_BASE;
-     if(GPIOF->RIS & (1<<0))           /* PF0 handler code */
+  if(PassengerDownPressed())
      {
-         xInterruptInfo.pinNumber = 0;
-         GPIOF->ICR |= (1<<0);       /* Clear Trigger flag for PF4 (Interrupt Flag) */
+         GPIOD->ICR |= (1<<PassengerBottonDownPin);       /* Clear Trigger flag for the pin (Interrupt Flag) */
+         xSemaphoreGiveFromISR(xPassengerDown,&flag);
      }
-     else if(GPIOF->RIS & (1<<4))      /* PF4 handler code */
-     {
-         xInterruptInfo.pinNumber = 4;
-         GPIOF->ICR |= (1<<4);       /* Clear Trigger flag for PF4 (Interrupt Flag) */
-     }
+
 }
+
+
+
+

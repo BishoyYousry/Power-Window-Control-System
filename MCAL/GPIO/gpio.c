@@ -7,7 +7,7 @@
  *param: pin_no: GPIO pin #
  *return: none
 */
-static void gpio_configure_pin_unlock(GPIOA_Type *GPIOx, uint16_t pin_no){
+  void gpio_configure_pin_unlock(GPIOA_Type *GPIOx, uint16_t pin_no){
     GPIOx->LOCK = 0x4C4F434B; // Unlock the commit register
 
     GPIOx->CR |= (0x01 << pin_no); // Write 0x01 to the corresponding bit in commit register
@@ -20,7 +20,7 @@ static void gpio_configure_pin_unlock(GPIOA_Type *GPIOx, uint16_t pin_no){
  *param: mode: mode to be configured
  *return: none
 */
-static void gpio_configure_pin_mode(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t mode){
+  void gpio_configure_pin_mode(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t mode){
     if(mode == GPIO_PIN_DIGITAL) {
         GPIOx->AMSEL = 0x00; //Disable analog mode
         GPIOx->DEN |= (0X01 << pin_no); // Enable digital I/O for the pin
@@ -36,7 +36,7 @@ static void gpio_configure_pin_mode(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t
  *param: io_type: I/O direction to be configured
  *return: none
 */
-static void gpio_configure_pin_iotype(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t io_type){
+  void gpio_configure_pin_iotype(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t io_type){
     if(io_type == GPIO_PIN_OUTPUT){
         GPIOx->DIR |= (0x01 << pin_no); // Set the bit to 1
     } else {
@@ -51,7 +51,7 @@ static void gpio_configure_pin_iotype(GPIOA_Type *GPIOx, uint16_t pin_no, uint32
  *param: pupd: pull up/down or open drain to be configured
  *return: none
 */
-static void gpio_configure_pin_pupd(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t pupd){
+  void gpio_configure_pin_pupd(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t pupd){
     if(pupd == GPIO_PIN_PULL_UP){
         GPIOx->PUR |= (0x01 << pin_no); // Set the pull up register bit to 1
     } else if(pupd == GPIO_PIN_PULL_DOWN) {
@@ -68,7 +68,7 @@ static void gpio_configure_pin_pupd(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t
  *param: alt_fun_value: alternate function to be configed with
  *return: none
 */
-static void gpio_set_alt_function(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t alt_fun_enable, uint32_t alt_fun_value){
+  void gpio_set_alt_function(GPIOA_Type *GPIOx, uint16_t pin_no, uint32_t alt_fun_enable, uint32_t alt_fun_value){
 	if(alt_fun_enable){
 		GPIOx->AFSEL |= (0x01 << pin_no); // Enable alt func
 		GPIOx->PCTL |= (alt_fun_value << (4 * pin_no)); // Choose alt func
