@@ -547,6 +547,9 @@ typedef QueueHandle_t SemaphoreHandle_t;
     #define xSemaphoreGiveRecursive( xMutex )    xQueueGiveMutexRecursive( ( xMutex ) )
 #endif
 
+#define xSemaphoreCreateMutex() xSemaphoreCreateBinary()
+
+
 /**
  * semphr. h
  * @code{c}

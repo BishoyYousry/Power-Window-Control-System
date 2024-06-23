@@ -49,6 +49,9 @@ unsigned char DriverUpPressed();
 unsigned char DriverDownPressed();
 unsigned char PassengerUpPressed();
 unsigned char PassengerDownPressed();
+
+unsigned char JammingPressed();
+
 unsigned char UpLimitSwitch();
 unsigned char DownLimitSwitch();
 

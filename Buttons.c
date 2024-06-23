@@ -29,17 +29,37 @@ void  BottonsConfig()
     OneButtonConfig(GPIOD,DriverBottonDownPin);
     OneButtonConfig(GPIOD,PassengerBottonupPin);
     OneButtonConfig(GPIOD,PassengerBottonDownPin);
-    NVIC_enable_interrupt( 3); /*Enable NVIC for port D*/
+    NVIC_enable_interrupt(3); /*Enable NVIC for port D*/
 
+    OneButtonConfig(GPIOF,JammingPin);
     OneButtonConfig(GPIOF,LimitUpPin);
     OneButtonConfig(GPIOF,LimitDownPin);
-    OneButtonConfig(GPIOF,LockPin);
+
+    /*config lock button */
+    gpio_configure_pin_unlock(GPIOF,LockPin);
+
+    gpio_configure_pin_mode(GPIOF,LockPin,GPIO_PIN_DIGITAL);
+    gpio_configure_pin_iotype(GPIOF,LockPin,GPIO_PIN_INPUT);
+    gpio_configure_pin_pupd(GPIOF,LockPin,GPIO_PIN_PULL_UP);
+    //gpio_set_alt_function(GPIOx,pin_no,GPIO_PIN_PULL_UP);
+    gpio_enable_interrupt(GPIOF,LockPin);
+    gpio_configure_interrupt(GPIOF,LockPin,GPIO_INT_BOTH_EDGES);
+    gpio_clear_interrupt(GPIOF,LockPin);
+
+    /*enable NVIC to port F to enable lock interrupt*/
+    NVIC_enable_interrupt(30); /*Enable NVIC for port D*/
+
 
 }
 unsigned char DriverUpPressed()
 {
     return gpio_read_from_pin(GPIOD,DriverBottonupPin);
 }
+unsigned char JammingPressed()
+{
+    return gpio_read_from_pin(GPIOF,JammingPin);
+}
+
 unsigned char DriverDownPressed()
 {
     return gpio_read_from_pin(GPIOD,DriverBottonDownPin);
